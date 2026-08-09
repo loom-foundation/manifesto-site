@@ -1,0 +1,67 @@
+name: Cleanup signature branches
+
+# Deletes the branch behind a signature pull request that was CLOSED without
+# being merged.
+#
+# Merged pull requests are already handled natively: the repository has
+# "Automatically delete head branches" enabled, which fires on every merge
+# regardless of how it happened (the bot's `gh pr merge --delete-branch` on the
+# Weaver path, or a maintainer merging a Mill in the GitHub UI). That setting
+# does NOT fire when a pull request is closed unmerged, so an abandoned or
+# rejected signature used to leave its `sign/...` branch behind for good. This
+# workflow is that missing half, and nothing else — it deliberately skips merged
+# pull requests so it can never race the native deletion.
+on:
+  pull_request:
+    types: [closed]
+
+# Least privilege by default; the one job opts into what it needs.
+permissions: {}
+
+concurrency:
+  group: cleanup-signature-branches-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  delete-branch:
+    name: Delete abandoned signature branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Three guards, all required:
+    #   1. not merged      — merges are the native setting's job, not ours
+    #   2. same repository — a fork's branch is not ours to delete, and the
+    #                        token on a fork pull request is read-only anyway
+    #   3. a sign/ branch  — Weavers are `sign/weaver/<handle>`, Mills are
+    #                        `sign/mill/<org>-<team>`; anything else is a
+    #                        maintainer's own branch, left alone on purpose
+    if: >-
+      github.event.pull_request.merged == false &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      startsWith(github.event.pull_request.head.ref, 'sign/')
+    permissions:
+      contents: write # delete the branch ref
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      BRANCH: ${{ github.event.pull_request.head.ref }}
+      PR: ${{ github.event.pull_request.number }}
+    steps:
+      # This job never checks out the repository: it only deletes a ref through
+      # the API, so the pull request's code is never fetched or executed.
+      - name: Delete branch
+        run: |
+          set -euo pipefail
+
+          # Tolerate an already-deleted branch: a maintainer may have tidied it
+          # by hand, or a re-run may be racing itself. Absence is success here.
+          if ! gh api "repos/$REPO/git/ref/heads/$BRANCH" >/dev/null 2>&1; then
+            echo "Branch '$BRANCH' is already gone; nothing to delete."
+            exit 0
+          fi
+
+          sha="$(gh api "repos/$REPO/git/ref/heads/$BRANCH" --jq '.object.sha')"
+          gh api -X DELETE "repos/$REPO/git/refs/heads/$BRANCH"
+
+          # Record the SHA in the run log so an abandoned signature can still be
+          # recovered (`git fetch origin <sha>`) after the branch is gone.
+          echo "Deleted '$BRANCH' (was $sha) after PR #$PR closed unmerged."

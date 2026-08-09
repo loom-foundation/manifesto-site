@@ -1,0 +1,162 @@
+name: Release
+
+# Builds, tests, and deploys the site to production (theloommanifesto.org on
+# Cloudflare Pages). Runs when the site source changes on main, from the
+# manual "Run workflow" button, or when called by the daily release-check
+# workflow (which is what catches changes to the manifesto itself: that text
+# lives in the sibling loom-foundation/manifesto repo, so a push there can't
+# trigger a workflow here directly — see daily-release-check.yml). A failing
+# build or verification blocks the deploy.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - '.github/workflows/release.yml'
+      - '.github/scripts/check-build.mjs'
+  workflow_dispatch:
+  workflow_call:
+
+# Serialise with the daily signatories release so two runs never deploy at once.
+concurrency:
+  group: release-prod
+  cancel-in-progress: false
+
+env:
+  # The Cloudflare Pages project to deploy to. Change this if the project is
+  # named differently in your Cloudflare account.
+  CF_PAGES_PROJECT: theloommanifesto
+
+# Least privilege by default; jobs opt into exactly what they need.
+permissions: {}
+
+jobs:
+  build:
+    name: Build & verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      # Three sibling checkouts, mirroring the west workspace layout
+      # (<workspace>/manifesto-site, <workspace>/manifesto, <workspace>/org):
+      # this repo (site + signatories), the canonical manifesto text
+      # (public loom-foundation/manifesto repo), and the brand artefacts
+      # (favicon, wordmarks, logo, public loom-foundation/org repo).
+      - name: Checkout site + signatories
+        uses: actions/checkout@v4
+        with:
+          path: manifesto-site
+          fetch-depth: 0
+          # This job never pushes; keep the token out of git config while
+          # third-party install/build scripts (sharp, esbuild) run.
+          persist-credentials: false
+
+      - name: Checkout manifesto content
+        uses: actions/checkout@v4
+        with:
+          repository: loom-foundation/manifesto
+          path: manifesto
+          persist-credentials: false
+
+      - name: Checkout brand assets
+        uses: actions/checkout@v4
+        with:
+          repository: loom-foundation/org
+          path: org
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: manifesto-site/site/package-lock.json
+
+      - name: Install dependencies
+        working-directory: manifesto-site/site
+        run: npm ci
+
+      - name: Type check
+        working-directory: manifesto-site/site
+        run: npm run check
+
+      - name: Build
+        working-directory: manifesto-site/site
+        run: npm run build
+
+      - name: Verify build output
+        run: node manifesto-site/.github/scripts/check-build.mjs manifesto-site/site/dist
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-dist
+          path: manifesto-site/site/dist
+          retention-days: 7
+
+  deploy:
+    name: Deploy to Cloudflare Pages
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    environment:
+      name: production
+      url: https://theloommanifesto.org
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: site-dist
+          path: dist
+
+      - name: Deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=${{ env.CF_PAGES_PROJECT }} --branch=main
+
+  tag:
+    name: Mark deployed commit
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      # Move the `prod` tag to the just-deployed commit. The daily
+      # release-check workflow diffs signatories/ between this tag and HEAD
+      # to decide whether a rebuild is warranted for signatory changes, so
+      # every deploy must advance it.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Advance prod tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -f prod "$GITHUB_SHA"
+          git push -f origin refs/tags/prod
+
+      - name: Record deployed manifesto content
+        # The daily release-check workflow compares this against the
+        # manifesto repo's current HEAD (for manifesto.md) to decide whether
+        # a manifesto-only edit warrants a rebuild — the same content that
+        # this Build job just checked out and rendered.
+        run: |
+          set -euo pipefail
+          sha="$(gh api 'repos/loom-foundation/manifesto/commits?path=manifesto.md&sha=main&per_page=1' -q '.[0].sha')"
+          mkdir -p .deploy
+          printf '%s\n' "$sha" > .deploy/manifesto.sha
+          if [ -z "$(git status --porcelain -- .deploy/manifesto.sha)" ]; then
+            echo "Deployed manifesto SHA unchanged ($sha)."
+            exit 0
+          fi
+          git add .deploy/manifesto.sha
+          git commit -m "chore: record deployed manifesto content ($sha) [skip ci]"
+          git push

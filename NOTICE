@@ -1,0 +1,17 @@
+The Loom Manifesto — website
+Copyright 2026 Bruno Almeida do Lago
+
+The source in this repository (site/ and .github/) is licensed under the
+Apache License, Version 2.0 (see the LICENSE file).
+
+The signatory files under signatories/ are not source code: each is a
+public record contributed by pull request, governed by the terms in
+signatories/README.md rather than by this license.
+
+The manifesto text this site publishes (manifesto.md and meta/ in the
+sibling loom-foundation/manifesto repo) is a separate work licensed under
+CC BY-ND 4.0 — see that repository's LICENSE.
+
+"The Loom Method" and "The Loom Manifesto" are trademarks of their holder.
+This license covers the source code only and grants no rights to use the
+trademarks (Apache License 2.0, Section 6).

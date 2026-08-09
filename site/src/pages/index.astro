@@ -1,0 +1,140 @@
+---
+import { getCollection, getEntry, render } from 'astro:content';
+import Layout from '../layouts/Layout.astro';
+
+const entry = await getEntry('manifesto', 'manifesto');
+if (!entry) throw new Error('manifesto.md not found via content collection');
+const { Content } = await render(entry);
+
+const { title, description, abstract, keywords } = entry.data;
+
+// --- Signatories ------------------------------------------------------
+// The public repository that receives signatures. The site's sign buttons open
+// Issue Forms here; the by-hand pull-request path writes into `signatories/`.
+const SIGNATORIES_REPO = 'loom-foundation/manifesto';
+
+// Earliest signatures first; entries without a date fall to the end,
+// tie-broken by handle/slug so the build is stable.
+const byDateThenId = (a: { data: { signed?: Date }; id: string }, b: { data: { signed?: Date }; id: string }) =>
+  (a.data.signed?.getTime() ?? Infinity) - (b.data.signed?.getTime() ?? Infinity) ||
+  a.id.localeCompare(b.id);
+
+const weavers = (await getCollection('weavers')).sort(byDateThenId);
+const mills = (await getCollection('mills')).sort(byDateThenId);
+
+// A Mill is keyed by its path `mills/<org>/<team>`: the org is the verifiable
+// anchor (drives the mark and the link), the team slug is a self-asserted label.
+const millOrg = (m: (typeof mills)[number]) => m.id.split('/')[0];
+const millTeam = (m: (typeof mills)[number]) => m.id.split('/').slice(1).join('/') || m.id;
+const millName = (m: (typeof mills)[number]) => m.data.name ?? millTeam(m);
+const millHref = (m: (typeof mills)[number]) => `https://github.com/${millOrg(m)}`;
+// The mark: an explicit logo override, else the org's GitHub avatar.
+const millMark = (m: (typeof mills)[number]) =>
+  m.data.logo ?? `https://github.com/${millOrg(m)}.png?size=176`;
+
+// Public signing goes through Issue Forms: the signer submits a short form from
+// their own account and a bot opens (and, for Weavers, merges) the file. This
+// avoids GitHub's fork-from-editor step, which blocks non-members.
+const issueFormUrl = (template: string) =>
+  `https://github.com/${SIGNATORIES_REPO}/issues/new?template=${template}`;
+const weaverSignUrl = issueFormUrl('sign-weaver.yml');
+const millSignUrl = issueFormUrl('sign-mill.yml');
+
+// Degrade gracefully: the "Signatories" section heading and the call to
+// sign are always shown, so a fresh site with an empty roster still reads
+// as intended. Only the per-tier sub-headings (The Mills / The Weavers)
+// and their rosters appear once someone has signed.
+---
+
+<Layout title={title} description={description} abstract={abstract} keywords={keywords} canonicalPath="/">
+  <Content />
+
+  <section class="signatories" aria-label="Signatories">
+    <h2>Signatories</h2>
+
+    {mills.length > 0 && (
+      <section class="tier" aria-labelledby="mills-title">
+        <h3 id="mills-title">The Mills</h3>
+        <ul class="roster roster--mills">
+          {mills.map((m) => {
+            const mark = millMark(m);
+            const name = millName(m);
+            return (
+              <li class="mark mark--mill">
+                <a href={millHref(m)} target="_blank" rel="noopener" title={name}>
+                  {mark ? (
+                    <img src={mark} alt={name} width="88" height="88" loading="lazy" />
+                  ) : (
+                    <span class="mark__initials" aria-hidden="true">{name.slice(0, 2)}</span>
+                  )}
+                  <span class="mark__name">{name}</span>
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    )}
+
+    {weavers.length > 0 && (
+      <section class="tier" aria-labelledby="weavers-title">
+        <h3 id="weavers-title">The Weavers</h3>
+        <ul class="roster roster--weavers">
+          {weavers.map((w) => {
+            // The handle IS the filename; the `github` field is an optional override.
+            const handle = w.data.github ?? w.id;
+            const name = w.data.name ?? handle;
+            const role = w.data.role ?? 'Weaver';
+            return (
+              <li class="mark mark--weaver">
+                <a
+                  href={`https://github.com/${handle}`}
+                  target="_blank"
+                  rel="noopener"
+                  title={`${name} — ${role}`}
+                  aria-label={`${name}, ${role}`}
+                >
+                  <img
+                    src={`https://github.com/${handle}.png?size=160`}
+                    alt={name}
+                    width="64"
+                    height="64"
+                    loading="lazy"
+                  />
+                  <span class="mark__name">{name}</span>
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    )}
+
+    {/* The call to sign closes the section: social proof first, then the ask. */}
+    <div class="sign">
+      <a class="sign-cta" href={weaverSignUrl}>Sign the manifesto</a>
+      <p class="sign-note">
+        Signing for a team or organisation?{' '}
+        <a class="sign-alt" href={millSignUrl}>Sign as a Mill</a>.
+      </p>
+    </div>
+  </section>
+
+  {/* Site footer. The canonical CC BY-ND line, lifted out of the manifesto
+      body by remark-strip-copyright and re-presented here as chrome — the
+      text is verbatim from manifesto.md, only its placement is the site's. */}
+  <footer class="colophon">
+    <p>
+      <small>
+        {/* Explicit {' '} spacers: Astro's JSX-style whitespace handling trims
+            the space in `by␤<a>` etc., so inter-word/link spacing is made literal. */}
+        <a href="https://theloommanifesto.org">The Loom Manifesto</a> © 2026 by{' '}
+        <a href="https://bruno.blissful.im">Bruno Almeida do Lago</a> is licensed under{' '}
+        <a href="https://creativecommons.org/licenses/by-nd/4.0/">CC BY-ND 4.0</a>{' '}
+        <img src="https://mirrors.creativecommons.org/presskit/icons/cc.svg" alt="CC" width="16" height="16" style="height:1.2em; vertical-align:middle;" />{' '}
+        <img src="https://mirrors.creativecommons.org/presskit/icons/by.svg" alt="BY" width="16" height="16" style="height:1.2em; vertical-align:middle;" />{' '}
+        <img src="https://mirrors.creativecommons.org/presskit/icons/nd.svg" alt="ND" width="16" height="16" style="height:1.2em; vertical-align:middle;" />
+      </small>
+    </p>
+  </footer>
+</Layout>

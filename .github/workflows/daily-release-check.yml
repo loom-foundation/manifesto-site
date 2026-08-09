@@ -1,0 +1,87 @@
+name: Daily release check
+
+# Two things land continuously but are released in a daily batch rather than
+# one deploy each: signatories (by pull request, to this repo) and manifesto
+# edits (to the sibling loom-foundation/manifesto repo — a push there can't
+# trigger a workflow here directly, so this is also how manifesto changes
+# reach production). This job runs once a day, checks whether either source
+# changed since the last deploy, and only then triggers a rebuild and
+# release. If neither changed, it skips — no build, no deploy.
+on:
+  schedule:
+    - cron: '17 6 * * *' # daily at 06:17 UTC
+  workflow_dispatch:
+
+# No concurrency group here on purpose: this workflow calls release.yml, which
+# declares `concurrency: release-prod` itself. Sharing that group between caller
+# and callee deadlocks the reusable call, so serialization of actual deploys is
+# left entirely to release.yml (which applies whether it runs directly or is
+# called from here).
+
+# Least privilege by default; jobs opt into exactly what they need.
+permissions: {}
+
+jobs:
+  check:
+    name: Check for new signatories or manifesto changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+    outputs:
+      changed: ${{ steps.diff.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Diff against last deploy
+        id: diff
+        run: |
+          set -euo pipefail
+          git fetch --tags --force origin
+
+          if ! git rev-parse -q --verify refs/tags/prod >/dev/null; then
+            # No prod tag yet (site never released through this pipeline).
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "No prod tag found — releasing to establish the baseline."
+            exit 0
+          fi
+          last="$(git rev-parse refs/tags/prod)"
+
+          if ! git diff --quiet "$last" HEAD -- signatories/; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Signatory changes detected since $last:"
+            git diff --name-only "$last" HEAD -- signatories/
+            exit 0
+          fi
+
+          if [ ! -f .deploy/manifesto.sha ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "No recorded manifesto SHA yet — releasing to establish the baseline."
+            exit 0
+          fi
+          deployed="$(cat .deploy/manifesto.sha)"
+          current="$(gh api 'repos/loom-foundation/manifesto/commits?path=manifesto.md&sha=main&per_page=1' -q '.[0].sha')"
+          if [ "$deployed" != "$current" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Manifesto changed: $deployed -> $current"
+            exit 0
+          fi
+
+          echo "changed=false" >> "$GITHUB_OUTPUT"
+          echo "No signatory or manifesto changes since $last — skipping release."
+
+  release:
+    name: Release
+    needs: check
+    if: needs.check.outputs.changed == 'true'
+    # The repo's default token is read-only, and a called workflow cannot hold
+    # more than its caller grants. release.yml's tag job needs to push the prod
+    # tag, so grant contents:write here as the ceiling for the reusable run.
+    permissions:
+      contents: write
+    uses: ./.github/workflows/release.yml
+    secrets: inherit

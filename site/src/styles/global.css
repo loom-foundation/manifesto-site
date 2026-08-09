@@ -1,0 +1,702 @@
+:root {
+  --measure: 65ch;
+  --serif: "Iowan Old Style", "Charter", "Georgia", "Cambria", "Times New Roman", serif;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --ink: #1a1a1a;
+  --paper: #fafaf7;
+  --rule: #d8d4cb;
+  --muted: #6b6759;
+  --accent: #1a1a1a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #e8e4d8;
+    --paper: #07132B;
+    --rule: #1e3460;
+    --muted: #7a8fad;
+    --accent: #e8e4d8;
+  }
+}
+
+html[data-theme="light"] {
+  --ink: #1a1a1a;
+  --paper: #fafaf7;
+  --rule: #d8d4cb;
+  --muted: #6b6759;
+  --accent: #1a1a1a;
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  --ink: #e8e4d8;
+  --paper: #07132B;
+  --rule: #1e3460;
+  --muted: #7a8fad;
+  --accent: #e8e4d8;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 18px;
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+  /* The full-bleed signatories tint uses 100vw; keep it from adding a
+     horizontal scrollbar. */
+  overflow-x: hidden;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 1.08rem;
+  line-height: 1.65;
+  font-feature-settings: "kern", "liga", "onum";
+}
+
+main {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: 5.5rem 1.5rem 6rem;
+}
+
+.masthead {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.top-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1.25rem;
+  background: color-mix(in srgb, var(--paper) 82%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid color-mix(in srgb, var(--rule) 50%, transparent);
+}
+
+.wordmark-link {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  text-decoration: none;
+}
+
+.wordmark-link img {
+  height: 100%;
+  width: auto;
+  display: block;
+}
+
+/* Default: light variant visible, dark variant hidden.
+   Specificity must match .wordmark-link img (0,1,1) so these rules win by source order. */
+img.wordmark-img--dark { display: none; }
+
+@media (prefers-color-scheme: dark) {
+  img.wordmark-img--light { display: none; }
+  img.wordmark-img--dark { display: block; }
+}
+
+html[data-theme="dark"] .wordmark-img--light { display: none; }
+html[data-theme="dark"] .wordmark-img--dark { display: block; }
+html[data-theme="light"] .wordmark-img--dark { display: none; }
+html[data-theme="light"] .wordmark-img--light { display: block; }
+
+.theme-switcher {
+  position: relative;
+}
+
+.theme-trigger {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.3rem;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  opacity: 0.55;
+  transition: opacity 0.15s;
+  border-radius: 5px;
+}
+
+.theme-trigger:hover {
+  opacity: 1;
+}
+
+.theme-icon {
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.theme-icon svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.theme-icon--auto { display: flex; }
+
+html[data-theme="light"] .theme-icon--auto { display: none; }
+html[data-theme="light"] .theme-icon--light { display: flex; }
+html[data-theme="dark"] .theme-icon--auto { display: none; }
+html[data-theme="dark"] .theme-icon--dark { display: flex; }
+
+.theme-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 6.5rem;
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--ink) 10%, transparent);
+  z-index: 200;
+  transform-origin: top right;
+  visibility: hidden;
+  opacity: 0;
+  transform: scale(0.94) translateY(-4px);
+  transition: opacity 0.12s ease, transform 0.12s ease, visibility 0s linear 0.12s;
+  pointer-events: none;
+}
+
+.theme-menu.open {
+  visibility: visible;
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  pointer-events: auto;
+}
+
+.theme-option {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  width: 100%;
+  text-align: left;
+  transition: background 0.1s, color 0.1s;
+}
+
+.theme-option svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.theme-option:hover {
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  color: var(--ink);
+}
+
+.theme-option[aria-pressed="true"] {
+  color: var(--ink);
+}
+
+.logo-link {
+  display: inline-block;
+  width: 200px;
+}
+
+.logo-link svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+@media (prefers-color-scheme: dark) {
+  html .logo-bg { fill: #FFFFFF; }
+  html .logo-text { fill: #FFFFFF !important; }
+}
+
+html[data-theme="dark"] .logo-bg { fill: #FFFFFF; }
+html[data-theme="dark"] .logo-text { fill: #FFFFFF !important; }
+html[data-theme="light"] .logo-bg { fill: #0A1B3D; }
+html[data-theme="light"] .logo-text { fill: #0A1B3D !important; }
+
+#infinity-path {
+  stroke-dasharray: 340;
+  stroke-dashoffset: 340;
+  animation: draw-infinity 0.72s cubic-bezier(0.4, 0, 0.2, 1) 0.3s forwards;
+}
+
+@keyframes draw-infinity {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.manifesto h1 {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 1.75rem;
+  letter-spacing: 0.02em;
+  text-align: center;
+  margin: 2rem 0 2.5rem;
+  text-transform: uppercase;
+}
+
+.manifesto h1 + p {
+  text-align: center;
+  margin-top: -1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.manifesto h2 {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 1.2rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin: 3.5rem 0 1.25rem;
+  text-align: center;
+}
+
+.manifesto h3 {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 1.0625rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 2.5rem 0 0.75rem;
+}
+
+.manifesto p {
+  margin: 0 0 1.25rem;
+  hyphens: none;
+  -webkit-hyphens: none;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.manifesto p > strong:only-child,
+.manifesto p:first-of-type strong {
+  font-family: var(--sans);
+  letter-spacing: 0.01em;
+}
+
+/* The manifesto's final line, marked by rehype-closing-aphorism. Bold
+   weight comes from the source markup's <strong>; this rule centres and
+   breathes it as an emphatic close. */
+.manifesto p.closing-aphorism {
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-top: 2.5rem;
+}
+
+.manifesto blockquote {
+  margin: 2rem 0;
+  padding: 0 1.5rem;
+  border-left: 2px solid var(--rule);
+  color: var(--muted);
+  font-style: italic;
+}
+
+.manifesto blockquote p {
+  margin-bottom: 0.5rem;
+}
+
+.manifesto blockquote strong {
+  font-style: normal;
+  color: var(--ink);
+}
+
+.manifesto hr {
+  border: none;
+  border-top: 1px solid var(--rule);
+  margin: 3.5rem auto;
+  width: 6rem;
+}
+
+.manifesto ol,
+.manifesto ul {
+  padding-left: 1.5rem;
+  margin: 1.5rem 0;
+}
+
+.manifesto ol {
+  counter-reset: tenet;
+  list-style: none;
+  padding-left: 0;
+}
+
+.manifesto ol > li {
+  counter-increment: tenet;
+  position: relative;
+  padding-left: 2.75rem;
+  margin-bottom: 1.75rem;
+  scroll-margin-top: 2rem;
+}
+
+.manifesto ol > li > p {
+  margin-bottom: 0;
+}
+
+.manifesto ol > li::before {
+  content: counter(tenet);
+  position: absolute;
+  left: 0;
+  top: 0.35rem;
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  width: 2rem;
+  text-align: right;
+}
+
+.manifesto ol > li:target {
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
+.manifesto ol > li > strong:first-child {
+  font-family: var(--sans);
+  letter-spacing: 0.01em;
+}
+
+.manifesto ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.manifesto ul > li {
+  position: relative;
+  padding-left: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.manifesto ul > li::before {
+  content: "—";
+  position: absolute;
+  left: 0;
+  color: var(--muted);
+}
+
+.manifesto em {
+  font-style: italic;
+  font-size: 1.04em;
+}
+
+.manifesto a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--rule);
+  text-underline-offset: 0.2em;
+}
+
+.manifesto a:hover {
+  text-decoration-color: var(--accent);
+}
+
+.manifesto h2,
+.manifesto h3 {
+  scroll-margin-top: 2rem;
+}
+
+.manifesto h2:target,
+.manifesto h3:target {
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
+.manifesto small {
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* ============================================================
+   Signatories — the roster beneath THE CALL. Styled only with
+   global tokens (--ink/--paper/--rule/--muted/--sans/--accent);
+   the two tiers are distinguished by shape, not colour: Weavers
+   are circular portraits, Mills are rounded-square marks.
+   ============================================================ */
+
+.signatories {
+  position: relative;
+  margin-top: 3.5rem;
+  padding: 3.5rem 0 4rem;
+}
+
+/* Barely-there full-bleed tint: spans edge to edge behind the section
+   while the content stays within the reading column. */
+.signatories::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 100vw;
+  transform: translateX(-50%);
+  background: color-mix(in srgb, var(--ink) 3%, var(--paper));
+  z-index: -1;
+}
+
+/* The leading heading owns the band's top padding; drop its own margin. */
+.signatories > h2 {
+  margin-top: 0;
+}
+
+/* The call to sign, closing the signatories section. */
+.sign {
+  text-align: center;
+  margin: 3.5rem 0 0;
+}
+
+/* Scoped under .sign so these beat the `.manifesto a` link
+   defaults (underline + inherited ink colour) on specificity. */
+.sign .sign-cta {
+  display: inline-block;
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.75rem 1.75rem;
+  color: var(--paper);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sign .sign-cta:hover {
+  background: transparent;
+  color: var(--ink);
+}
+
+/* Space between the button and the supporting text below it. */
+.sign .sign-cta {
+  margin-bottom: 1.75rem;
+}
+
+.sign-note {
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  line-height: 1.7;
+  color: var(--muted);
+  margin: 0;
+}
+
+.sign-note .sign-alt {
+  color: var(--muted);
+  text-decoration: underline;
+  text-decoration-color: var(--rule);
+  text-underline-offset: 0.2em;
+}
+
+.sign-note .sign-alt:hover {
+  color: var(--ink);
+}
+
+.signatories .tier {
+  margin-top: 3rem;
+}
+
+.signatories .tier h3 {
+  text-align: center;
+  color: var(--muted);
+}
+
+/* Reset the manifesto list defaults (bullets, indent, em-dashes) and
+   centre with flexbox so one signatory or a hundred both sit centred. */
+.manifesto .roster {
+  list-style: none;
+  padding: 0;
+  margin: 1.75rem auto 0;
+  max-width: 40rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.manifesto .roster > li {
+  margin: 0;
+  padding: 0;
+}
+
+.manifesto .roster > li::before {
+  content: none;
+}
+
+.roster--weavers {
+  gap: 1.5rem 1.25rem;
+}
+
+.roster--mills {
+  gap: 2rem 2.5rem;
+}
+
+.mark a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.mark img {
+  display: block;
+  object-fit: cover;
+  background: color-mix(in srgb, var(--muted) 20%, var(--paper));
+  filter: grayscale(0.15);
+  transition: filter 0.15s, transform 0.15s;
+}
+
+.mark a:hover img {
+  filter: grayscale(0);
+  transform: translateY(-2px);
+}
+
+.mark--weaver img {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+}
+
+.mark--mill img {
+  width: 88px;
+  height: 88px;
+  border-radius: 14px;
+}
+
+.mark__name {
+  font-family: var(--sans);
+  font-size: 0.78rem;
+  letter-spacing: 0.01em;
+  color: var(--muted);
+  text-align: center;
+  max-width: 12ch;
+}
+
+.mark--mill .mark__name {
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+
+.mark__initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--muted) 20%, var(--paper));
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 1.4rem;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Site footer — the CC BY-ND colophon lifted from the manifesto body.
+   It sits inside .manifesto, so the <hr>, <small> and <a> inherit the
+   document's own divider and legal-line styling for free. */
+.colophon {
+  margin-top: 5rem;
+  text-align: center;
+}
+
+.colophon p {
+  margin: 0;
+}
+
+@media print {
+  .top-bar {
+    display: none;
+  }
+
+  .sign,
+  .signatories {
+    display: none;
+  }
+
+  :root {
+    --paper: #fff;
+    --ink: #000;
+    --muted: #444;
+    --rule: #999;
+  }
+
+  body {
+    font-size: 11pt;
+    line-height: 1.5;
+  }
+
+  main {
+    max-width: none;
+    padding: 0;
+  }
+
+  .masthead {
+    margin-bottom: 1.5rem;
+  }
+
+  .logo-link {
+    width: 120px;
+  }
+
+  #infinity-path {
+    animation: none !important;
+    stroke-dasharray: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+
+  .manifesto h1 {
+    font-size: 18pt;
+    margin-top: 0;
+  }
+
+  .manifesto h2 {
+    font-size: 11pt;
+    margin-top: 1.5rem;
+  }
+
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .manifesto ol > li {
+    page-break-inside: avoid;
+  }
+
+  h1,
+  h2,
+  h3 {
+    page-break-after: avoid;
+  }
+}

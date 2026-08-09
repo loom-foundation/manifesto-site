@@ -1,0 +1,46 @@
+name: Sign as a Mill (team or organisation)
+description: Sign on behalf of a team or a whole organisation.
+title: "Sign: mill"
+labels: [signature, mill]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Sign on behalf of a group. We verify that you are a real insider of the organisation; the team name is yours to assert.
+
+        - **Public members** of the org are verified automatically — that is the whole check.
+        - **Private members**: either publicise your membership (GitHub → Organizations → publicise), or prove control. Add a file to any public repo your org owns containing the line `loom-signatory: <org>` (or `loom-signatory: <org>/<team>` for a team), then point **Control file URL** below at that file.
+
+        A maintainer reviews and merges Mill signatures.
+  - type: input
+    id: org
+    attributes:
+      label: Organisation
+      description: The GitHub organisation handle you are signing for. This is the verifiable part.
+      placeholder: acme
+    validations:
+      required: true
+  - type: input
+    id: team
+    attributes:
+      label: Team
+      description: Optional. The team name. Leave blank to sign for the whole organisation.
+      placeholder: Platform
+    validations:
+      required: false
+  - type: input
+    id: name
+    attributes:
+      label: Display name
+      description: Optional. A label shown for the signature. Leave blank to use the organisation handle.
+      placeholder: ACME Platform
+    validations:
+      required: false
+  - type: input
+    id: url
+    attributes:
+      label: Control file URL
+      description: Optional. Public members can leave this blank. Private members must link the control file described above so the bot can verify control of the org.
+      placeholder: https://github.com/acme/acme/blob/main/loom-manifesto.md
+    validations:
+      required: false

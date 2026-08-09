@@ -1,0 +1,135 @@
+name: PR preview
+
+# Builds every pull request to main and, for branches in this repo, deploys a
+# Cloudflare Pages PREVIEW (a non-production branch alias, e.g.
+# <branch>.theloommanifesto.pages.dev) so changes can be reviewed on a real URL
+# before they merge. Merging to main is the approval gate; production deploys
+# from main via release.yml. Fork PRs are built and verified but not deployed
+# (GitHub withholds secrets from forks — a deliberate safety boundary).
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  CF_PAGES_PROJECT: theloommanifesto
+
+# Least privilege by default; jobs opt into exactly what they need.
+permissions: {}
+
+jobs:
+  build:
+    name: Build & verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      # Three sibling checkouts — see release.yml for why.
+      - name: Checkout site + signatories
+        uses: actions/checkout@v4
+        with:
+          path: manifesto-site
+          # This job never pushes; keep the token out of git config while
+          # third-party install/build scripts (sharp, esbuild) run.
+          persist-credentials: false
+
+      - name: Checkout manifesto content
+        uses: actions/checkout@v4
+        with:
+          repository: loom-foundation/manifesto
+          path: manifesto
+          persist-credentials: false
+
+      - name: Checkout brand assets
+        uses: actions/checkout@v4
+        with:
+          repository: loom-foundation/org
+          path: org
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: manifesto-site/site/package-lock.json
+
+      - name: Install dependencies
+        working-directory: manifesto-site/site
+        run: npm ci
+
+      - name: Type check
+        working-directory: manifesto-site/site
+        run: npm run check
+
+      - name: Build
+        working-directory: manifesto-site/site
+        run: npm run build
+
+      - name: Verify build output
+        run: node manifesto-site/.github/scripts/check-build.mjs manifesto-site/site/dist
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-dist
+          path: manifesto-site/site/dist
+          retention-days: 3
+
+  preview:
+    name: Deploy preview
+    needs: build
+    # Only same-repo branches receive secrets; fork PRs are built/verified above
+    # but skip the deploy (they cannot access CLOUDFLARE_* and must not).
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: site-dist
+          path: dist
+
+      - name: Deploy preview to Cloudflare Pages
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=${{ env.CF_PAGES_PROJECT }} --branch=${{ github.head_ref }}
+
+      - name: Comment preview URL on the PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- pages-preview -->';
+            const alias = '${{ steps.deploy.outputs.pages-deployment-alias-url }}';
+            const unique = '${{ steps.deploy.outputs.deployment-url }}';
+            const primary = alias || unique;
+            const lines = [
+              marker,
+              '### 🔎 Preview deployed',
+              '',
+              `**${primary}**`,
+            ];
+            if (alias && unique && alias !== unique) {
+              lines.push('', `<sub>This build: ${unique}</sub>`);
+            }
+            lines.push('', `<sub>Built from ${context.sha.slice(0, 7)}; updates on every push to this PR.</sub>`);
+            const body = lines.join('\n');
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number });
+            const existing = comments.find((c) => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }

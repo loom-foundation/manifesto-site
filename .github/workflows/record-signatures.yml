@@ -1,0 +1,59 @@
+name: Record signatures
+
+# Runs AFTER a signature is merged to main. The pull_request_target validator
+# deliberately never checks out or writes anything (that is what keeps it
+# safe against fork code), so it cannot stamp the file. This workflow does:
+# for a Mill, it records which org insider signed, how they were verified,
+# and when; for both Mills and Weavers, it stamps `manifesto-version` from
+# the sibling manifesto repo's current `version` frontmatter, then commits
+# the evidence back. Weavers get no `verification` block — their filename is
+# the identity and git history is the date.
+#
+# Weaver signatures merge via the bot (sign-from-issue.sh), so this must NOT
+# skip bot-authored pushes the way it might be tempted to for loop
+# prevention — GitHub's native `[skip ci]` handling on the commit message
+# this workflow itself writes already prevents it from re-triggering itself.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'signatories/mills/**'
+      - 'signatories/weavers/**'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: record-signatures
+  cancel-in-progress: false
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      SHA: ${{ github.sha }}
+      BEFORE: ${{ github.event.before }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Stamp signatory verification
+        run: bash .github/scripts/record.sh
+
+      - name: Commit evidence
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "Nothing to record."
+            exit 0
+          fi
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A signatories
+          git commit -m 'chore: record signatory verification [skip ci]'
+          git push

@@ -1,0 +1,37 @@
+name: Validate signatories
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'signatories/**'
+
+# This workflow only READS pull-request metadata and public file contents
+# through the API. It never executes the PR's code, so pull_request_target is
+# safe here, and it grants the write token needed to comment on fork PRs.
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: validate-signatories-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      PR: ${{ github.event.pull_request.number }}
+      ACTION: ${{ github.event.action }}
+      AUTHOR: ${{ github.event.pull_request.user.login }}
+      HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      # Checks out the BASE branch (our trusted scripts), not the PR head, so
+      # the PR cannot alter the validation logic that runs against it.
+      - uses: actions/checkout@v4
+      - name: Verify signatures
+        run: bash .github/scripts/validate.sh

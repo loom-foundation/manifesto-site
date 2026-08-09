@@ -1,0 +1,59 @@
+<!--
+  Source for the social/link-preview image served at /og-card.png.
+
+  This file is NOT served or imported by the site; it is the editable source
+  for public/og-card.png. After editing, regenerate the PNG with librsvg:
+
+    rsvg-convert -w 1200 -h 630 -b '#07132B' assets/og-card.svg -o public/og-card.png
+
+  The loom mark path, gradient, and 12:110 stroke-to-width ratio are taken
+  verbatim from org/brand/assets/loom-logo.svg so the card stays on-brand.
+  The built site references only the rasterised PNG (og:image / twitter:image),
+  which social scrapers render reliably where SVG is not supported.
+-->
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="loomgrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#00E5FF"/>
+      <stop offset="50%" stop-color="#8A2BE2"/>
+      <stop offset="100%" stop-color="#D600FF"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Ground: the site's dark-theme paper -->
+  <rect width="1200" height="630" fill="#07132B"/>
+
+  <!-- Hairline inset frame -->
+  <rect x="40" y="40" width="1120" height="550" fill="none" stroke="#1e3460" stroke-width="2" rx="10"/>
+
+  <!-- The loom mark, verbatim from the brand logo (center 300,455; width 110;
+       stroke-width 12). Scaled 2.1x here → ~231px wide, ~25px stroke, keeping
+       the brand's 12:110 stroke-to-width ratio. -->
+  <g transform="translate(600,180) scale(2.1) translate(-300,-455)">
+    <path d="M 300 455
+             C 312 425, 355 425, 355 455
+             C 355 485, 312 485, 300 455
+             C 288 425, 245 425, 245 455
+             C 245 485, 288 485, 300 455 Z"
+          fill="none" stroke="url(#loomgrad)" stroke-width="12"
+          stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Title -->
+  <text x="600" y="360" text-anchor="middle"
+        font-family="Helvetica Neue, Helvetica, Arial, sans-serif"
+        font-size="76" font-weight="700" letter-spacing="6" fill="#e8e4d8">THE LOOM MANIFESTO</text>
+
+  <!-- Tagline -->
+  <text x="600" y="428" text-anchor="middle"
+        font-family="Georgia, 'Times New Roman', serif"
+        font-size="33" font-style="italic" fill="#a9bbd8">When machines build at speed, clarity becomes the craft.</text>
+
+  <!-- Gradient rule -->
+  <rect x="540" y="472" width="120" height="3" rx="1.5" fill="url(#loomgrad)"/>
+
+  <!-- Domain -->
+  <text x="600" y="548" text-anchor="middle"
+        font-family="Helvetica Neue, Helvetica, Arial, sans-serif"
+        font-size="24" font-weight="600" letter-spacing="4" fill="#7a8fad">THELOOMMANIFESTO.ORG</text>
+</svg>

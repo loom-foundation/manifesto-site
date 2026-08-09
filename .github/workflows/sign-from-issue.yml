@@ -1,0 +1,43 @@
+name: Sign from issue
+
+# Turns a signature Issue Form (sign-weaver / sign-mill) into a signature pull
+# request, so anyone can sign without forking. The script reads the issue from
+# the API (author, body, labels) rather than the event payload, which can omit
+# form-applied labels; workflow_dispatch lets a maintainer re-drive an issue.
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: Signature issue number to (re-)process
+        required: true
+
+# Least privilege by default; the one job opts into what it needs.
+permissions: {}
+
+concurrency:
+  group: sign-from-issue-${{ github.event.issue.number || inputs.issue }}
+  cancel-in-progress: false
+
+jobs:
+  sign:
+    name: Create signature from issue
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write # push the signature branch
+      issues: write # comment on / close the issue
+      pull-requests: write # open (and, for Weavers, merge) the PR
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      ISSUE: ${{ github.event.issue.number || inputs.issue }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Sign from issue
+        run: bash .github/scripts/sign-from-issue.sh

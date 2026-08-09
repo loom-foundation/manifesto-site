@@ -1,0 +1,17 @@
+name: Sign as a Weaver (individual)
+description: Add your individual signature to The Loom Manifesto. No fork, no file editing.
+title: "Sign: weaver"
+labels: [signature, weaver]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        You are signing as an individual. **The GitHub account that opens this issue is your signature** — that is the whole check. There is nothing you must fill in; both fields below are optional. Submit, and a bot opens and merges the one-line file for you.
+  - type: input
+    id: name
+    attributes:
+      label: Display name
+      description: Optional. Shown instead of your handle (it still links to your profile). Leave blank to sign under your handle.
+      placeholder: Ada Lovelace
+    validations:
+      required: false

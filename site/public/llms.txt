@@ -1,0 +1,30 @@
+# The Loom Manifesto
+
+> When machines build at speed, clarity becomes the craft.
+
+Product is intent realised.
+
+The Loom Manifesto declares that execution speed is no longer the constraint in product development; clarity is. Poorly expressed intent compounds at machine speed: unclear intent misses the Why, imprecise requirements miss the What, vague specification misses the How. The thinking is the work; the weaving is the machine's.
+
+It opens with Ada Lovelace's 1843 Note G, the algorithm written for a machine that did not yet exist, as the figure for its central claim: intent precedes, and outlasts, the machine that executes it.
+
+## Structure
+
+The manifesto has four parts and a closing call.
+
+- The Age of Unearned Speed: names the shift. The question is no longer whether we can build it, but whether we know what to build. Unclear intent misses the Why; imprecise requirements miss the What; vague specification misses the How.
+- In Note G We Believe: six principles. (1) The note holds the intent in pattern. (2) Creativity leads; the tool follows. (3) The artefact is the conversation. (4) The pattern binds every pick. (5) Verification is independent. (6) The pattern is continuous.
+- The Lovelace Craft: humans are the source of creativity, intuition, and meaning; machines are the engine of precision, velocity, and consistency. Three roles are named: the Weavers (vision becomes intent), the Loom (intent becomes requirement as warp, requirement becomes specification as weft, and the reed of verification beats every pick true), and the Signal (the world answers the product, and the pattern is altered in the chain).
+- The Call: start with intent, write it down, make it specific, sound, and honest. Then set the loom in motion. The weaving teaches; the world answers; what is learned returns to the note.
+
+## Content
+
+- [The Loom Manifesto](https://theloommanifesto.org/): Full text, rendered for reading.
+- [manifesto.md](https://theloommanifesto.org/manifesto.md): The canonical source in raw Markdown, for machine ingestion.
+
+## About
+
+Author: Bruno Almeida do Lago (https://bruno.blissful.im)
+Version: 1.0
+License: Creative Commons BY-ND 4.0 (https://creativecommons.org/licenses/by-nd/4.0/)
+Language: en-GB

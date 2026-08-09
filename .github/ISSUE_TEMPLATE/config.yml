@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: How signing works (and the pull-request path)
+    url: https://github.com/loom-foundation/manifesto/blob/main/signatories/README.md
+    about: The full detail on Weaver and Mill signatures, and how to sign by opening a pull request instead.
