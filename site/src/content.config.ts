@@ -3,7 +3,7 @@
  *
  * The manifesto markdown lives in the workspace `manifesto` repo
  * (`../../../manifesto/manifesto.md` relative to the site — this repo sits
- * at apps/app-manifesto-site in the west workspace), checked out
+ * at apps/manifesto-site in the west workspace), checked out
  * alongside this repo the same way `../../../org` (brand assets) is — see
  * astro.config.mjs's `vite.server.fs.allow` and the CI checkout steps.
  * It is not moved or copied here; the glob loader reads it in place.
