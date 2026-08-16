@@ -31,5 +31,5 @@ The site reads sibling repositories in the west workspace (the manifesto content
 
 ```sh
 cd path/to/loom-foundation && west update
-cd manifesto-site/site && npm install && npm run dev
+cd apps/app-manifesto-site/site && npm install && npm run dev
 ```

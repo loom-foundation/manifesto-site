@@ -39,14 +39,14 @@ jobs:
       contents: read
     steps:
       # Three sibling checkouts, mirroring the west workspace layout
-      # (<workspace>/manifesto-site, <workspace>/manifesto, <workspace>/org):
+      # (<workspace>/apps/app-manifesto-site, <workspace>/manifesto, <workspace>/org):
       # this repo (site + signatories), the canonical manifesto text
       # (public loom-foundation/manifesto repo), and the brand artefacts
       # (favicon, wordmarks, logo, public loom-foundation/org repo).
       - name: Checkout site + signatories
         uses: actions/checkout@v4
         with:
-          path: manifesto-site
+          path: apps/app-manifesto-site
           fetch-depth: 0
           # This job never pushes; keep the token out of git config while
           # third-party install/build scripts (sharp, esbuild) run.
@@ -70,28 +70,28 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: manifesto-site/site/package-lock.json
+          cache-dependency-path: apps/app-manifesto-site/site/package-lock.json
 
       - name: Install dependencies
-        working-directory: manifesto-site/site
+        working-directory: apps/app-manifesto-site/site
         run: npm ci
 
       - name: Type check
-        working-directory: manifesto-site/site
+        working-directory: apps/app-manifesto-site/site
         run: npm run check
 
       - name: Build
-        working-directory: manifesto-site/site
+        working-directory: apps/app-manifesto-site/site
         run: npm run build
 
       - name: Verify build output
-        run: node manifesto-site/.github/scripts/check-build.mjs manifesto-site/site/dist
+        run: node apps/app-manifesto-site/.github/scripts/check-build.mjs apps/app-manifesto-site/site/dist
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: site-dist
-          path: manifesto-site/site/dist
+          path: apps/app-manifesto-site/site/dist
           retention-days: 7
 
   deploy:

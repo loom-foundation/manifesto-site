@@ -21,12 +21,14 @@ export default defineConfig({
   vite: {
     server: {
       // Allow Vite to serve the site's own tree (`..` covers signatories/,
-      // which live in this repo), the manifesto content in the sibling
-      // ../../manifesto repo, and the org brand artefacts in ../../org/brand
-      // (favicon, wordmarks, logo). The site does not depend on the
-      // design-system package, so ../../packages is deliberately left out of
-      // the allowlist.
-      fs: { allow: ['..', '../../manifesto', '../../org'] },
+      // which live in this repo), the manifesto content in the workspace
+      // ../../../manifesto repo, and the org brand artefacts in
+      // ../../../org/brand (favicon, wordmarks, logo). This repo sits at
+      // apps/app-manifesto-site in the west workspace, so workspace siblings
+      // are three levels up from site/. The site does not depend on the
+      // design-system package, so ../../../packages is deliberately left out
+      // of the allowlist.
+      fs: { allow: ['..', '../../../manifesto', '../../../org'] },
     },
   },
   markdown: {

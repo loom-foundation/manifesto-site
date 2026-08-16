@@ -8,11 +8,11 @@ import { resolve } from 'node:path';
  * The rendered page at / is for humans; this endpoint exposes the primary
  * artefact in its structured source form so search engines, bots, and AI
  * agents can read and ingest the document verbatim (frontmatter, headings,
- * and all). The file is read in place from the sibling `manifesto` repo's
+ * and all). The file is read in place from the workspace `manifesto` repo's
  * root — the same canonical source the content collection renders — so the
  * two can never drift.
  */
-const source = readFileSync(resolve(process.cwd(), '../../manifesto/manifesto.md'), 'utf-8');
+const source = readFileSync(resolve(process.cwd(), '../../../manifesto/manifesto.md'), 'utf-8');
 
 export const prerender = true;
 

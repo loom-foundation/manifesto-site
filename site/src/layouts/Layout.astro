@@ -2,11 +2,11 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import '../styles/global.css';
-import faviconUrl from '../../../../org/brand/assets/favicon.svg?url';
-import wordmarkUrl from '../../../../org/brand/assets/loom-wordmark.png?url';
-import wordmarkInvertedUrl from '../../../../org/brand/assets/loom-wordmark-inverted.png?url';
+import faviconUrl from '../../../../../org/brand/assets/favicon.svg?url';
+import wordmarkUrl from '../../../../../org/brand/assets/loom-wordmark.png?url';
+import wordmarkInvertedUrl from '../../../../../org/brand/assets/loom-wordmark-inverted.png?url';
 
-const brandRoot = resolve(process.cwd(), '../../org/brand/assets');
+const brandRoot = resolve(process.cwd(), '../../../org/brand/assets');
 
 let logoSvg = readFileSync(resolve(brandRoot, 'loom-logo.svg'), 'utf-8');
 logoSvg = logoSvg.replace(/@font-face\s*\{[\s\S]*?\}/g, '');
